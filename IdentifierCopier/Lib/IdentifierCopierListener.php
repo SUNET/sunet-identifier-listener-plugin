@@ -21,7 +21,8 @@ class IdentifierCopierListener implements CakeEventListener {
     
   public function implementedEvents() {
     return array(
-      'Model.afterSave'   => 'copyIdentifier'
+      'Model.afterSave'   => 'copyIdentifier',
+      'Model.beforeDelete' => 'deleteIdentifier'
     );
   }
 
@@ -68,8 +69,15 @@ class IdentifierCopierListener implements CakeEventListener {
 
     if(!empty($curId)) {
       if($curId['Identifier']['identifier'] == $id['identifier']) {
-        // Nothing to do, identifier already exists.
-        return true;
+        // Delete the identifier.
+        if($delete) {
+          $Identifier->clear();
+          $Identifier->delete($curId['Identifier']['id']);
+          return true;
+        }  else {
+          // Nothing to do, identifier already exists.
+          return true;
+        }
       }
     }
 
@@ -156,6 +164,44 @@ class IdentifierCopierListener implements CakeEventListener {
       }
     }
     
+    // Return true to keep the event flowing
+    return true;
+  }
+
+  /**
+   * Handle an Identifier Delete event by deleting the associated
+   * identifier.
+   *
+   * @since  COmanage Registry v3.2.0
+   * @param  CakeEvent $event Cake Event
+   * @return Boolean True on success
+   */
+  
+  public function deleteIdentifier(CakeEvent $event) {
+    
+    $subject = $event->subject();
+
+    if($subject->name == 'Identifier') {
+      $args = array();
+      $args['conditions']['Identifier.id'] = $subject->id;
+      $args['contain'] = false;
+
+      $Identifier = ClassRegistry::init('Identifier');
+
+      $identifier = $Identifier->find('first', $args)['Identifier'];
+
+      if(!empty($identifier['org_identity_id'])
+         && empty($identifier['co_person_id'])
+         // For now we only fire on identifiers of type ePPN.
+         && ($identifier['type'] == IdentifierEnum::ePPN)
+         && isset($identifier['login']) && $identifier['login']
+         && !empty($identifier['identifier'])) {
+        $Identifier = ClassRegistry::init('Identifier');
+        
+        $this->syncIdentifier($Identifier, $identifier, true);
+      }
+    }
+
     // Return true to keep the event flowing
     return true;
   }
