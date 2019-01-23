@@ -57,10 +57,10 @@ class IdentifierCopierListener implements CakeEventListener {
       return true;
     }
 
-    // Is there already an identifier of the appropriate type already 
+    // Is there already an identifier of type externaleppn already 
     // associated with the CoPerson record?
     $args = array();
-    $args['conditions']['Identifier.type'] = $id['type'];
+    $args['conditions']['Identifier.type'] = 'externaleppn';
     $args['conditions']['Identifier.co_person_id'] = $link['CoOrgIdentityLink']['co_person_id'];
     $args['contain'] = false;
 
@@ -77,7 +77,7 @@ class IdentifierCopierListener implements CakeEventListener {
       'Identifier' => array(
         'identifier'           => $id['identifier'],
         'co_person_id'         => $link['CoOrgIdentityLink']['co_person_id'],
-        'type'                 => $id['type'],
+        'type'                 => 'externaleppn',
         'status'               => StatusEnum::Active,
         'login'                => false
       )
@@ -121,7 +121,8 @@ class IdentifierCopierListener implements CakeEventListener {
       $identifier = $subject->data['Identifier'];
       
       if(!empty($identifier['org_identity_id'])
-         // For now we only fire on identifiers of type ePPN.
+        // For now we only fire on identifiers of type ePPN added
+        // to the organizational identity.
          && ($identifier['type'] == IdentifierEnum::ePPN)
          && isset($identifier['login']) && $identifier['login']
          && !empty($identifier['identifier'])) {
